@@ -3,7 +3,7 @@
 Every function below comes from the lesson 04 notebook, except the two
 helpers at the end (ring_track and save_wav).
 """
-from math import exp
+from math import exp, sin, pi
 from random import random
 import struct
 import wave
@@ -32,8 +32,16 @@ def square_wave_f(f, sample_rate=SR, amplitude=0.15):
         phase = (phase + frequency / sample_rate) % 1
     return wave
 
+def sine_wave_f(f, sample_rate=SR, amplitude=0.15):
+    phase = 0.0
+    wave = []
+    for frequency in f:
+        wave.append(amplitude * sin(2 * pi * phase))
+        phase = (phase + frequency / sample_rate) % 1
+    return wave
 
-def edge_fade(wave, attack=0.001, release=0.005, sample_rate=SR):
+
+def edge_fade(wave, attack=0.001, release=0.002, sample_rate=SR):
     n = len(wave)
     attack_samples = max(1, round(attack * sample_rate))
     release_samples = max(1, round(release * sample_rate))
@@ -44,7 +52,7 @@ def edge_fade(wave, attack=0.001, release=0.005, sample_rate=SR):
     return vca(wave, edge)
 
 
-def envelope_exp(duration=0.05, tau=0.012, sample_rate=SR):
+def envelope_exp(duration=0.05, tau=0.30, sample_rate=SR):
     if tau <= 0:
         raise ValueError("tau must be positive.")
     n = round(duration * sample_rate)
@@ -64,21 +72,21 @@ def open_hat(duration=0.30, tau=0.070, amplitude=0.15, sample_rate=SR):
 
 
 def kick_raw(
-    duration=0.25, start_hz=180, end_hz=45,
-    pitch_tau=0.025, amp_tau=0.060,
-    amplitude=0.20, sample_rate=SR,
+    duration=0.35, start_hz=180, end_hz=48,
+    pitch_tau=0.020, amp_tau=0.015,
+    amplitude=0.80, sample_rate=SR,
 ):
     pitch_shape = envelope_exp(duration, tau=pitch_tau, sample_rate=sample_rate)
     pitch = [end_hz + (start_hz - end_hz) * value for value in pitch_shape]
-    body = square_wave_f(pitch, sample_rate=sample_rate, amplitude=amplitude)
+    body = sine_wave_f(pitch, amplitude=amplitude, sample_rate=sample_rate)
     shape = envelope_exp(duration, tau=amp_tau, sample_rate=sample_rate)
     return vca(body, shape)
 
 
 def kick(
-    duration=0.25, start_hz=180, end_hz=45,
-    pitch_tau=0.025, amp_tau=0.060,
-    amplitude=0.20, sample_rate=SR,
+    duration=0.30, start_hz=180, end_hz=48,
+    pitch_tau=0.010, amp_tau=0.050,
+    amplitude=0.40, sample_rate=SR,
 ):
     wave = kick_raw(
         duration=duration, start_hz=start_hz, end_hz=end_hz,
@@ -95,15 +103,15 @@ def mix(a, b, ga=1.0, gb=1.0):
 
 
 def snare(
-    duration=0.20, amplitude=0.15, noise_gain=0.5,
+    duration=0.50, amplitude=0.15, noise_gain=0.5,
     sample_rate=SR,
 ):
     pitch = [
         180 + 120 * value
-        for value in envelope_exp(duration, tau=0.010, sample_rate=sample_rate)
+        for value in envelope_exp(duration, tau=0.030, sample_rate=sample_rate)
     ]
     body = vca(
-        square_wave_f(pitch, amplitude=amplitude, sample_rate=sample_rate),
+        sine_wave_f(pitch, amplitude=amplitude, sample_rate=sample_rate),
         envelope_exp(duration, tau=0.025, sample_rate=sample_rate),
     )
     wires = vca(
